@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<header>
+	<script src="Chart.bundle.min.js"></script>
+	<script type="text/javascript">
+		function loadJSON() {
+			fetch("https://raw.githubusercontent.com/khyos/covid19/master/covid19-data.json").then((response) => {
+				return response.json();
+			})
+			.then((oData) => {
+				const aCountryNames = ['Chine', 'Corée du Sud', 'Italie', 'France', 'États-Unis', 'Japon'];
+				const aColors = ['#5899DA', '#E8743B', '#19A979', '#ED4A7B', '#945ECF', '#13A4B4', '#525DF4', '#BF399E', '#6C8893', '#EE6868', '#2F6497'];
+				const oDataSets = getDataSets(oData, aCountryNames);
+				
+				const aCurrentDatasets = [];
+				const aProgressionDatasets = [];
+				const aProgressionPercentDatasets = [];
+				for (let i = 0; i < aCountryNames.length; i++) {
+					const sCountry = aCountryNames[i];
+					aCurrentDatasets.push({
+						label: sCountry,
+						fill: false,
+						borderColor: aColors[i],
+						data: oDataSets.countries[sCountry].Current
+					});
+					aProgressionDatasets.push({
+						label: sCountry,
+						fill: false,
+						borderColor: aColors[i],
+						data: oDataSets.countries[sCountry].Progression
+					});
+					aProgressionPercentDatasets.push({
+						label: sCountry,
+						fill: false,
+						borderColor: aColors[i],
+						data: oDataSets.countries[sCountry].ProgressionPercent
+					});
+				}
+			
+				const currentCtx = document.getElementById('current').getContext('2d');				
+				const chartCtx = new Chart(currentCtx, {
+					type: 'line',
+					data: {
+						labels: oDataSets.dates,
+						datasets: aCurrentDatasets
+					},
+					options: {
+						responsive: true,
+						maintainAspectRatio: false
+					}
+				});
+				
+				const progressionCtx = document.getElementById('progression').getContext('2d');				
+				const progressionChart = new Chart(progressionCtx, {
+					type: 'line',
+					data: {
+						labels: oDataSets.dates,
+						datasets: aProgressionDatasets
+					},
+					options: {
+						responsive: true,
+						maintainAspectRatio: false
+					}
+				});
+				
+				const progressionPercentCtx = document.getElementById('progressionPercent').getContext('2d');				
+				const progressionPercentChart = new Chart(progressionPercentCtx, {
+					type: 'line',
+					data: {
+						labels: oDataSets.dates,
+						datasets: aProgressionPercentDatasets
+					},
+					options: {
+						responsive: true,
+						maintainAspectRatio: false
+					}
+				});
+			});
+		}
+		
+		function getDataSets(oData, aCountryNames) {
+			const oCountriesData = oData.PaysData;
+			const mDates = {};
+			
+			oCountriesData.forEach((line) => {
+				if (!mDates[line.Date]) {
+					mDates[line.Date] = {};
+				}
+				mDates[line.Date][line.Pays] = line;
+			});
+			
+			const aDates = Object.keys(mDates);
+			aDates.sort((oDateA, oDateB) => {
+				return oDateA.localeCompare(oDateB);
+			});
+			
+			const mCountries = {};
+			
+			for (let i = 0; i < aCountryNames.length; i++) {
+				mCountries[aCountryNames[i]] = {
+					Current: [],
+					Progression: [],
+					ProgressionPercent: []
+				};
+			};
+			
+			for (let i = 0; i < aDates.length; i++) {
+				const sPreviousDate = aDates[i - 1];
+				const sDate = aDates[i];
+				for (let j = 0; j < aCountryNames.length; j++) {
+					const sCountryName = aCountryNames[j];
+					const oLine = mDates[sDate][sCountryName];
+					if (oLine) {
+						oLine.Current = oLine.Infection - oLine.Guerisons - oLine.Deces;
+						const oPreviousLine = sPreviousDate ? mDates[sPreviousDate][sCountryName] : null;
+						if (oPreviousLine) {
+							oLine.Progression = oLine.Current - oPreviousLine.Current;
+							oLine.ProgressionPercent = oLine.Progression / oPreviousLine.Current * 100;
+						} else {
+							oLine.Progression = oLine.Current;
+							oLine.ProgressionPercent = 0;
+						}
+					} else {
+						
+					}
+				};
+			}
+			
+			for (let i = 0; i < aDates.length; i++) {
+				const sDate = aDates[i];
+				for (let j = 0; j < aCountryNames.length; j++) {
+					const sCountryName = aCountryNames[j];
+					mCountries[sCountryName].Current.push(mDates[sDate][sCountryName] ? mDates[sDate][sCountryName].Current : 0);
+					mCountries[sCountryName].Progression.push(mDates[sDate][sCountryName] ? mDates[sDate][sCountryName].Progression : 0);
+					mCountries[sCountryName].ProgressionPercent.push(mDates[sDate][sCountryName] ? mDates[sDate][sCountryName].ProgressionPercent : 0);
+				}
+			}
+			
+			return {
+				dates: aDates,
+				countries: mCountries
+			};
+		};
+	</script>
+</header>
+<body onload="loadJSON()">
+	<div>Current number of infected person</div>
+	<div style="width: 100%: height: 500px">
+		<canvas id="current" width="400" height="400"></canvas>
+	</div>
+	<div>Day by day evolution of the number of infected person</div>
+	<div style="width: 100%: height: 500px">
+		<canvas id="progression" width="400" height="400"></canvas>
+	</div>
+	<div>Day by day evolution of the number of infected person in %</div>
+	<div style="width: 100%: height: 500px">
+		<canvas id="progressionPercent" width="400" height="400"></canvas>
+	</div>
+</body>
+</html>
