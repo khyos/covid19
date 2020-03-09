@@ -4,6 +4,11 @@
 	<script src="Chart.bundle.min.js"></script>
 	<script type="text/javascript">
 		let oLoadedData;
+		let sMinDate = "2020-01-22";
+		let sMaxDate = "2020-03-08";
+		let currentChart;
+		let progressionChart;
+		let progressionPercentChart;
 		const aCountryNames = ['Chine', 'Corée du Sud', 'Italie', 'France', 'États-Unis', 'Japon'];
 		const aColors = ['#5899DA', '#E8743B', '#19A979', '#ED4A7B', '#945ECF', '#13A4B4', '#525DF4', '#BF399E', '#6C8893', '#EE6868', '#2F6497'];
 	
@@ -13,8 +18,6 @@
 			})
 			.then((oData) => {
 				oLoadedData = oData;
-				const sMinDate = "2020-01-22";
-				const sMaxDate = "2020-03-08";
 				const oDataSets = getDataSets(oLoadedData, aCountryNames, sMinDate, sMaxDate);
 				createCharts(oDataSets, aCountryNames, aColors);
 			});
@@ -45,9 +48,12 @@
 					data: oDataSets.countries[sCountry].ProgressionPercent
 				});
 			}
-		
+			
+			if (currentChart) {
+				currentChart.destroy();
+			}
 			const currentCtx = document.getElementById('current').getContext('2d');				
-			const chartCtx = new Chart(currentCtx, {
+			currentChart = new Chart(currentCtx, {
 				type: 'line',
 				data: {
 					labels: oDataSets.dates,
@@ -59,8 +65,12 @@
 				}
 			});
 			
-			const progressionCtx = document.getElementById('progression').getContext('2d');				
-			const progressionChart = new Chart(progressionCtx, {
+			
+			if (progressionChart) {
+				progressionChart.destroy();
+			}
+			const progressionCtx = document.getElementById('progression').getContext('2d');			
+			progressionChart = new Chart(progressionCtx, {
 				type: 'line',
 				data: {
 					labels: oDataSets.dates,
@@ -72,8 +82,11 @@
 				}
 			});
 			
+			if (progressionPercentChart) {
+				progressionPercentChart.destroy();
+			}
 			const progressionPercentCtx = document.getElementById('progressionPercent').getContext('2d');				
-			const progressionPercentChart = new Chart(progressionPercentCtx, {
+			progressionPercentChart = new Chart(progressionPercentCtx, {
 				type: 'line',
 				data: {
 					labels: oDataSets.dates,
@@ -129,8 +142,6 @@
 							oLine.Progression = oLine.Current;
 							oLine.ProgressionPercent = 0;
 						}
-					} else {
-						
 					}
 				};
 			}
@@ -156,8 +167,8 @@
 		};
 		
 		function updateDates() {
-			const sMinDate = document.getElementById('startDate').value;
-			const sMaxDate = document.getElementById('endDate').value;
+			sMinDate = document.getElementById('startDate').value;
+			sMaxDate = document.getElementById('endDate').value;
 			const oDataSets = getDataSets(oLoadedData, aCountryNames, sMinDate, sMaxDate);
 			createCharts(oDataSets, aCountryNames, aColors);
 		};
