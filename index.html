@@ -90,7 +90,7 @@
 				},
 				options: {
 					responsive: true,
-					maintainAspectRatio: false
+					maintainAspectRatio: true
 				}
 			}
 			
@@ -230,19 +230,25 @@
 <body onload="loadJSON()">
 	<div>Start Date: <input type="date" id="startDate" value="2020-01-22" min="2020-01-22" max="2020-03-10" onchange="updateCharts()"/> End Date: <input type="date" id="endDate" value="2020-03-10" min="2020-01-22" max="2020-03-10" onchange="updateCharts()"/></div>
 	<br /><br />
-	<div>Current number of infected person <input type="checkbox" id="currentLog" onchange="updateCharts()"/>Log</div>
-	<div style="width: 100%: height: 500px">
-		<canvas id="current" width="400" height="400"></canvas>
-	</div>
-	<br /><br />
-	<div>Day by day evolution of the number of infected person</div>
-	<div style="width: 100%: height: 500px">
-		<canvas id="progression" width="400" height="400"></canvas>
-	</div>
-	<br /><br />
-	<div>Day by day evolution of the number of infected person in %</div>
-	<div style="width: 100%: height: 500px">
-		<canvas id="progressionPercent" width="400" height="400"></canvas>
+	<div>
+		<div style="display: inline-block;">
+			<div>Current number of infected person <input type="checkbox" id="currentLog" onchange="updateCharts()"/>Log</div>
+			<div style="width: 600px; height: 600px;">
+				<canvas id="current" width="500" height="500"></canvas>
+			</div>
+		</div>
+		<div style="display: inline-block;">
+			<div>Day by day evolution of the number of infected person</div>
+			<div style="width: 600px; height: 600px;">
+				<canvas id="progression" width="500" height="500"></canvas>
+			</div>
+		</div>
+		<div style="display: inline-block;">
+			<div>Day by day evolution of the number of infected person in %</div>
+			<div style="width: 600px; height: 600px;">
+				<canvas id="progressionPercent" width="500" height="500"></canvas>
+			</div>
+		</div>
 	</div>
 	<br /><br />
 	<div id="countriesFilter">
