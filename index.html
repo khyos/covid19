@@ -9,7 +9,9 @@
 		let currentChart;
 		let progressionChart;
 		let progressionPercentChart;
+		let current100Chart;
 		let bCurrentLog = false;
+		let bCurrent100Log = false;
 		const aCountryNames = ['Chine', 'Corée du Sud', 'Italie', 'France', 'États-Unis', 'Japon', 'Allemagne', 'Espagne'];
 		const aColors = ['#5899DA', '#E8743B', '#19A979', '#ED4A7B', '#945ECF', '#13A4B4', '#525DF4', '#BF399E', '#6C8893', '#EE6868', '#2F6497'];
 	
@@ -56,6 +58,7 @@
 			const aCurrentDatasets = [];
 			const aProgressionDatasets = [];
 			const aProgressionPercentDatasets = [];
+			const a100Datasets = [];
 			for (let i = 0; i < aCountryNames.length; i++) {
 				const sCountry = aCountryNames[i];
 				aCurrentDatasets.push({
@@ -75,6 +78,12 @@
 					fill: false,
 					borderColor: aColors[i],
 					data: oDataSets.countries[sCountry].ProgressionPercent
+				});
+				a100Datasets.push({
+					label: sCountry,
+					fill: false,
+					borderColor: aColors[i],
+					data: oDataSets.countries100[sCountry]
 				});
 			}
 			
@@ -149,6 +158,46 @@
 					maintainAspectRatio: false
 				}
 			});
+			
+			if (current100Chart) {
+				current100Chart.destroy();
+			}
+			const current100Ctx = document.getElementById('current100').getContext('2d');
+			const oCurrent100ChartConf = {
+				type: 'line',
+				data: {
+					labels: oDataSets.dates100,
+					datasets: a100Datasets
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: true
+				}
+			}
+			
+			if (bCurrent100Log) {
+				oCurrent100ChartConf.options.scales = {
+					yAxes: [{
+						type: 'logarithmic',
+						ticks: {
+						min: 0,
+						max: 100000,
+						callback: function(value, index, values) {//needed to change the scientific notation results from using logarithmic scale
+							return Number(value.toString());//pass tick values as a string into Number function
+						}
+					},
+					afterBuildTicks: function(pckBarChart) {    
+						pckBarChart.ticks = [];
+						pckBarChart.ticks.push(10);
+						pckBarChart.ticks.push(100);
+						pckBarChart.ticks.push(1000);
+						pckBarChart.ticks.push(10000);
+						pckBarChart.ticks.push(100000);
+					  }
+					}]
+				};
+			}
+			current100Chart = new Chart(current100Ctx, oCurrent100ChartConf);
 		}
 		
 		function getDataSets(oData, aCountryNames, sStartDate, sEndDate) {
@@ -178,6 +227,7 @@
 				};
 			};
 			
+			const mCountries100 = {};
 			for (let i = 0; i < aDates.length; i++) {
 				const sPreviousDate = aDates[i - 1];
 				const sDate = aDates[i];
@@ -186,6 +236,12 @@
 					const oLine = mDates[sDate][sCountryName];
 					if (oLine) {
 						oLine.Current = oLine.Infection - oLine.Guerisons - oLine.Deces;
+						if (oLine.Current >= 100) {
+							if (!mCountries100[sCountryName]) {
+								mCountries100[sCountryName] = [];
+							} 
+							mCountries100[sCountryName].push(oLine.Current);
+						}
 						const oPreviousLine = sPreviousDate ? mDates[sPreviousDate][sCountryName] : null;
 						if (oPreviousLine) {
 							oLine.Progression = oLine.Current - oPreviousLine.Current;
@@ -212,9 +268,23 @@
 				}
 			}
 			
+			let iDateNb = 0;
+			for (let i = 0; i < aCountryNames.length; i++) {
+				const sCountryName = aCountryNames[i];
+				if (mCountries100[sCountryName].length > iDateNb) {
+					iDateNb = mCountries100[sCountryName].length;
+				}
+			}
+			const aDates100 = [];
+			for (let i = 0; i < iDateNb; i++) {
+				aDates100.push(i);
+			}
+			
 			return {
 				dates: aFinalDates,
-				countries: mCountries
+				countries: mCountries,
+				dates100: aDates100,
+				countries100: mCountries100
 			};
 		};
 		
@@ -222,6 +292,7 @@
 			sMinDate = document.getElementById('startDate').value;
 			sMaxDate = document.getElementById('endDate').value;
 			bCurrentLog = document.getElementById('currentLog').checked;
+			bCurrent100Log = document.getElementById('current100Log').checked;
 			const oDataSets = getDataSets(oLoadedData, aCountryNames, sMinDate, sMaxDate);
 			createCharts(oDataSets, aCountryNames, aColors);
 		};
@@ -232,7 +303,7 @@
 	<br /><br />
 	<div>
 		<div style="display: inline-block;">
-			<div>Current number of infected person <input type="checkbox" id="currentLog" onchange="updateCharts()"/>Log</div>
+			<div>Current number of infected persons <input type="checkbox" id="currentLog" onchange="updateCharts()"/>Log</div>
 			<div style="width: 600px; height: 600px;">
 				<canvas id="current" width="500" height="500"></canvas>
 			</div>
@@ -247,6 +318,12 @@
 			<div>Day by day evolution of the number of infected person in %</div>
 			<div style="width: 600px; height: 600px;">
 				<canvas id="progressionPercent" width="500" height="500"></canvas>
+			</div>
+		</div>
+		<div style="display: inline-block;">
+			<div>Number if infected persons from day 100  <input type="checkbox" id="current100Log" onchange="updateCharts()"/>Log</div>
+			<div style="width: 600px; height: 600px;">
+				<canvas id="current100" width="500" height="500"></canvas>
 			</div>
 		</div>
 	</div>
