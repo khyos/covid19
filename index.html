@@ -5,7 +5,7 @@
 	<script type="text/javascript">
 		let oLoadedData;
 		let sMinDate = "2020-01-22";
-		let sMaxDate = "2020-03-15";
+		let sMaxDate = "2020-01-22";
 		let currentChart;
 		let progressionChart;
 		let progressionPercentChart;
@@ -27,6 +27,13 @@
 				oData.PaysData.forEach((line) => {
 					if (aAllCountries.indexOf(line.Pays) === -1) {
 						aAllCountries.push(line.Pays);
+					}
+					line.FinalDate = line.Date.split('T')[0];
+					if (line.FinalDate.localeCompare(sMinDate) < 0) {
+						sMinDate = line.FinalDate;
+					}
+					if (line.FinalDate.localeCompare(sMaxDate) > 0) {
+						sMaxDate = line.FinalDate;
 					}
 				});
 				aAllCountries.sort((sCountryA, sCountryB) => {
@@ -51,6 +58,16 @@
 					oLabel.innerHTML = sCountry;
 					oCountriesFilter.append(oLabel);
 				});
+				
+				const oStartDateInput = document.getElementById('startDate');
+				oStartDateInput.value = sMinDate;
+				oStartDateInput.setAttribute('min', sMinDate);
+				oStartDateInput.setAttribute('max', sMaxDate);
+				const oEndDateInput = document.getElementById('endDate');
+				oEndDateInput.value = sMaxDate;
+				oEndDateInput.setAttribute('min', sMinDate);
+				oEndDateInput.setAttribute('max', sMaxDate);
+				
 				const oDataSets = getDataSets(oLoadedData, aCountryNames, sMinDate, sMaxDate);
 				createCharts(oDataSets, aCountryNames, aColors);
 			});
@@ -254,7 +271,6 @@
 			const mDates = {};
 			
 			oCountriesData.forEach((line) => {
-				line.FinalDate = line.Date.split('T')[0];
 				if (!mDates[line.FinalDate]) {
 					mDates[line.FinalDate] = {};
 				}
@@ -353,7 +369,7 @@
 	</script>
 </header>
 <body onload="loadJSON()">
-	<div>Start Date: <input type="date" id="startDate" value="2020-01-22" min="2020-01-22" max="2020-03-15" onchange="updateCharts()"/> End Date: <input type="date" id="endDate" value="2020-03-15" min="2020-01-22" max="2020-03-15" onchange="updateCharts()"/></div>
+	<div>Start Date: <input type="date" id="startDate" onchange="updateCharts()"/> End Date: <input type="date" id="endDate" onchange="updateCharts()"/></div>
 	<br /><br />
 	<div>
 		<div style="display: inline-block;">
