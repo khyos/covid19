@@ -1,20 +1,29 @@
 <!DOCTYPE html>
-<html>
-<header>
+<html style="width: 100%; height: 100%">
+<head>
 	<script src="Chart.bundle.min.js"></script>
 	<script type="text/javascript">
 		let oLoadedData;
+		
 		let sMinDate = "2020-01-22";
 		let sMaxDate = "2020-01-22";
+		
 		let currentChart;
 		let progressionChart;
 		let progressionPercentChart;
 		let current100Chart;
 		let death100Chart;
+		
 		let bCurrentLog = false;
 		let bCurrent100Log = false;
 		let bDeath100Log = false;
-		const aCountryNames = ['Chine', 'Corée du Sud', 'Italie', 'France', 'États-Unis', 'Japon', 'Allemagne', 'Espagne'];
+		
+		let mDates;
+		let aDates;
+		let mCountries;
+		let aCountries;
+		
+		let aSelectedCountries;
 		const aColors = ['#5899DA', '#E8743B', '#19A979', '#ED4A7B', '#945ECF', '#13A4B4', '#525DF4', '#BF399E', '#6C8893', '#EE6868', '#2F6497'];
 	
 		function loadJSON() {
@@ -23,11 +32,11 @@
 			})
 			.then((oData) => {
 				oLoadedData = oData;
-				const aAllCountries = [];
-				oData.PaysData.forEach((line) => {
-					if (aAllCountries.indexOf(line.Pays) === -1) {
-						aAllCountries.push(line.Pays);
-					}
+				const oCountriesData = oData.PaysData;
+				
+				mDates = {};
+				mCountries = {};
+				oCountriesData.forEach((line) => {
 					line.FinalDate = line.Date.split('T')[0];
 					if (line.FinalDate.localeCompare(sMinDate) < 0) {
 						sMinDate = line.FinalDate;
@@ -35,28 +44,80 @@
 					if (line.FinalDate.localeCompare(sMaxDate) > 0) {
 						sMaxDate = line.FinalDate;
 					}
+					if (!mDates[line.FinalDate]) {
+						mDates[line.FinalDate] = {};
+					}
+					mDates[line.FinalDate][line.Pays] = line;
+					if (!mCountries[line.Pays]) {
+						mCountries[line.Pays] = {};
+					}
+					mCountries[line.Pays][line.FinalDate] = line;
 				});
-				aAllCountries.sort((sCountryA, sCountryB) => {
-					return sCountryA.localeCompare(sCountryB);
+				
+				aDates = Object.keys(mDates);
+				aDates.sort((oDateA, oDateB) => {
+					return oDateA.localeCompare(oDateB);
 				});
+				aCountries = Object.keys(mCountries);
+				
+				for (let i = 0; i < aDates.length; i++) {
+					const sPreviousDate = aDates[i - 1];
+					const sDate = aDates[i];
+					for (let j = 0; j < aCountries.length; j++) {
+						const sCountry = aCountries[j];
+						const oLine = mDates[sDate][sCountry];
+						if (oLine) {
+							oLine.Current = oLine.Infection - oLine.Guerisons - oLine.Deces;
+							const oPreviousLine = sPreviousDate ? mDates[sPreviousDate][sCountry] : null;
+							if (oPreviousLine) {
+								oLine.Progression = oLine.Current - oPreviousLine.Current;
+								oLine.ProgressionPercent = oLine.Progression / oPreviousLine.Current * 100;
+							} else {
+								oLine.Progression = oLine.Current;
+								oLine.ProgressionPercent = 0;
+							}
+						}
+					};
+				}
+				
+				aCountries.sort((sCountryA, sCountryB) => {
+					if (!mCountries[sCountryA][sMaxDate]) {
+						return 1;
+					}
+					if (!mCountries[sCountryB][sMaxDate]) {
+						return -1;
+					}
+					return mCountries[sCountryB][sMaxDate].Current - mCountries[sCountryA][sMaxDate].Current;
+				});
+				aSelectedCountries = [];
+				for (let i = 0; i < 8; i++) {
+					aSelectedCountries.push(aCountries[i]);
+				}
+				
+				const iMaxCurrent = mCountries[aCountries[0]][sMaxDate].Current;
 				const oCountriesFilter = document.getElementById("countriesFilter");
-				aAllCountries.forEach((sCountry) => {
+				aCountries.forEach((sCountry) => {
+					const oLi = document.createElement("li");
+					let iFillPercent = mCountries[sCountry][sMaxDate] ? (mCountries[sCountry][sMaxDate].Current / iMaxCurrent) * 100 : 0;
+					oLi.style.backgroundImage = "linear-gradient(to right, #cadded " + iFillPercent + "%, white " + iFillPercent + "%)";
 					const oCheckBox = document.createElement("INPUT");
 					oCheckBox.setAttribute('type', 'checkbox');
-					oCheckBox.setAttribute('id', 'sCountry');
-					oCheckBox.checked = aCountryNames.indexOf(sCountry) >= 0;
-					oCountriesFilter.append(oCheckBox);
+					oCheckBox.setAttribute('id', sCountry);
+					oCheckBox.checked = aSelectedCountries.indexOf(sCountry) >= 0;
+					oLi.append(oCheckBox);
 					oCheckBox.addEventListener('change', function() {
-						if (this.checked && aCountryNames.indexOf(sCountry) === -1) {
-							aCountryNames.push(sCountry);
-						} else if (!this.checked && aCountryNames.indexOf(sCountry) >= 0) {
-							aCountryNames.splice(aCountryNames.indexOf(sCountry), 1);
+						if (this.checked && aSelectedCountries.indexOf(sCountry) === -1) {
+							aSelectedCountries.push(sCountry);
+						} else if (!this.checked && aSelectedCountries.indexOf(sCountry) >= 0) {
+							aSelectedCountries.splice(aSelectedCountries.indexOf(sCountry), 1);
 						}
 						updateCharts();
 					});
 					const oLabel = document.createElement("LABEL");
 					oLabel.innerHTML = sCountry;
-					oCountriesFilter.append(oLabel);
+					oLabel.htmlFor = sCountry;
+					oLi.append(oLabel);
+					oCountriesFilter.append(oLi);
 				});
 				
 				const oStartDateInput = document.getElementById('startDate');
@@ -68,19 +129,19 @@
 				oEndDateInput.setAttribute('min', sMinDate);
 				oEndDateInput.setAttribute('max', sMaxDate);
 				
-				const oDataSets = getDataSets(oLoadedData, aCountryNames, sMinDate, sMaxDate);
-				createCharts(oDataSets, aCountryNames, aColors);
+				const oDataSets = getDataSets(oLoadedData);
+				createCharts(oDataSets);
 			});
 		}
 		
-		function createCharts(oDataSets, aCountryNames, aColors) {
+		function createCharts(oDataSets) {
 			const aCurrentDatasets = [];
 			const aProgressionDatasets = [];
 			const aProgressionPercentDatasets = [];
 			const aCurrent100Datasets = [];
 			const aDeath100Datasets = [];
-			for (let i = 0; i < aCountryNames.length; i++) {
-				const sCountry = aCountryNames[i];
+			for (let i = 0; i < aSelectedCountries.length; i++) {
+				const sCountry = aSelectedCountries[i];
 				aCurrentDatasets.push({
 					label: sCountry,
 					fill: false,
@@ -208,8 +269,8 @@
 						ticks: {
 						min: 0,
 						max: 100000,
-						callback: function(value, index, values) {//needed to change the scientific notation results from using logarithmic scale
-							return Number(value.toString());//pass tick values as a string into Number function
+						callback: function(value, index, values) {
+							return Number(value.toString());
 						}
 					},
 					afterBuildTicks: function(pckBarChart) {    
@@ -248,8 +309,8 @@
 						ticks: {
 						min: 0,
 						max: 100000,
-						callback: function(value, index, values) {//needed to change the scientific notation results from using logarithmic scale
-							return Number(value.toString());//pass tick values as a string into Number function
+						callback: function(value, index, values) {
+							return Number(value.toString());
 						}
 					},
 					afterBuildTicks: function(pckBarChart) {    
@@ -266,82 +327,58 @@
 			death100Chart = new Chart(death100Ctx, oDeath100ChartConf);
 		}
 		
-		function getDataSets(oData, aCountryNames, sStartDate, sEndDate) {
-			const oCountriesData = oData.PaysData;
-			const mDates = {};
-			
-			oCountriesData.forEach((line) => {
-				if (!mDates[line.FinalDate]) {
-					mDates[line.FinalDate] = {};
-				}
-				mDates[line.FinalDate][line.Pays] = line;
-			});
-			
-			const aDates = Object.keys(mDates);
-			aDates.sort((oDateA, oDateB) => {
-				return oDateA.localeCompare(oDateB);
-			});
-			
+		function getDataSets(oData) {
 			const mCountries = {};
 			
-			for (let i = 0; i < aCountryNames.length; i++) {
-				mCountries[aCountryNames[i]] = {
+			for (let i = 0; i < aSelectedCountries.length; i++) {
+				mCountries[aSelectedCountries[i]] = {
 					Current: [],
 					Progression: [],
 					ProgressionPercent: []
 				};
 			};
 			
-			const mCountries100 = {};
-			for (let i = 0; i < aDates.length; i++) {
-				const sPreviousDate = aDates[i - 1];
-				const sDate = aDates[i];
-				for (let j = 0; j < aCountryNames.length; j++) {
-					const sCountryName = aCountryNames[j];
-					const oLine = mDates[sDate][sCountryName];
-					if (oLine) {
-						oLine.Current = oLine.Infection - oLine.Guerisons - oLine.Deces;
-						if (oLine.Current >= 100) {
-							if (!mCountries100[sCountryName]) {
-								mCountries100[sCountryName] = {
-									Current: [],
-									Death: []
-								};
-							} 
-							mCountries100[sCountryName].Current.push(oLine.Current);
-							mCountries100[sCountryName].Death.push(oLine.Deces);
-						}
-						const oPreviousLine = sPreviousDate ? mDates[sPreviousDate][sCountryName] : null;
-						if (oPreviousLine) {
-							oLine.Progression = oLine.Current - oPreviousLine.Current;
-							oLine.ProgressionPercent = oLine.Progression / oPreviousLine.Current * 100;
-						} else {
-							oLine.Progression = oLine.Current;
-							oLine.ProgressionPercent = 0;
-						}
-					}
-				};
-			}
-			
 			const aFinalDates = [];
 			for (let i = 0; i < aDates.length; i++) {
 				const sDate = aDates[i];
-				if (sDate.localeCompare(sStartDate) >= 0 && sDate.localeCompare(sEndDate) <= 0) {
+				if (sDate.localeCompare(sMinDate) >= 0 && sDate.localeCompare(sMaxDate) <= 0) {
 					aFinalDates.push(sDate);
-					for (let j = 0; j < aCountryNames.length; j++) {
-						const sCountryName = aCountryNames[j];
-						mCountries[sCountryName].Current.push(mDates[sDate][sCountryName] ? mDates[sDate][sCountryName].Current : 0);
-						mCountries[sCountryName].Progression.push(mDates[sDate][sCountryName] ? mDates[sDate][sCountryName].Progression : 0);
-						mCountries[sCountryName].ProgressionPercent.push(mDates[sDate][sCountryName] ? mDates[sDate][sCountryName].ProgressionPercent : 0);
+					for (let j = 0; j < aSelectedCountries.length; j++) {
+						const sSelectedCountry = aSelectedCountries[j];
+						mCountries[sSelectedCountry].Current.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Current : 0);
+						mCountries[sSelectedCountry].Progression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Progression : 0);
+						mCountries[sSelectedCountry].ProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].ProgressionPercent : 0);
 					}
 				}
 			}
 			
+			const mCountries100 = {};
+			for (let i = 0; i < aDates.length; i++) {
+				const sPreviousDate = aDates[i - 1];
+				const sDate = aDates[i];
+				for (let j = 0; j < aSelectedCountries.length; j++) {
+					const sSelectedCountry = aSelectedCountries[j];
+					const oLine = mDates[sDate][sSelectedCountry];
+					if (oLine && oLine.Current >= 100) {
+						if (!mCountries100[sSelectedCountry]) {
+							mCountries100[sSelectedCountry] = {
+								Current: [],
+								Death: []
+							};
+						} 
+						mCountries100[sSelectedCountry].Current.push(oLine.Current);
+						mCountries100[sSelectedCountry].Death.push(oLine.Deces);
+					}
+				};
+			}
+			
+			
+			
 			let iDateNb = 0;
-			for (let i = 0; i < aCountryNames.length; i++) {
-				const sCountryName = aCountryNames[i];
-				if (mCountries100[sCountryName].Current.length > iDateNb) {
-					iDateNb = mCountries100[sCountryName].Current.length;
+			for (let i = 0; i < aSelectedCountries.length; i++) {
+				const sSelectedCountry = aSelectedCountries[i];
+				if (mCountries100[sSelectedCountry].Current.length > iDateNb) {
+					iDateNb = mCountries100[sSelectedCountry].Current.length;
 				}
 			}
 			const aDates100 = [];
@@ -363,50 +400,104 @@
 			bCurrentLog = document.getElementById('currentLog').checked;
 			bCurrent100Log = document.getElementById('current100Log').checked;
 			bDeath100Log = document.getElementById('death100Log').checked;
-			const oDataSets = getDataSets(oLoadedData, aCountryNames, sMinDate, sMaxDate);
-			createCharts(oDataSets, aCountryNames, aColors);
+			const oDataSets = getDataSets(oLoadedData);
+			createCharts(oDataSets);
 		};
 	</script>
-</header>
-<body onload="loadJSON()">
-	<div>Start Date: <input type="date" id="startDate" onchange="updateCharts()"/> End Date: <input type="date" id="endDate" onchange="updateCharts()"/></div>
-	<br /><br />
-	<div>
-		<div style="display: inline-block;">
-			<div>Current number of infected persons <input type="checkbox" id="currentLog" onchange="updateCharts()"/>Log</div>
-			<div style="width: 600px; height: 600px;">
-				<canvas id="current" width="500" height="500"></canvas>
-			</div>
+	<link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
+	<style>
+		body {
+			font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+			font-size: 14px;
+		}
+	
+		.countriesFilter {
+			margin: 0px;
+			margin-block-start: 0em;
+			margin-block-end: 0em;
+			margin-inline-start: 0px;
+			margin-inline-end: 0px;
+			padding-inline-start: 0px;
+		}
+		.countriesFilter>li {
+			display: block;
+		}
+		
+		.chartTile {
+			display: inline-block;
+			margin: 20px;
+		}
+		.chartLabel {
+			height: 20px;
+			line-height: 20px;
+		}
+		.chartLabel>div {
+			float: right;
+		}
+		
+		.canvasContainer {
+			width: 600px;
+			height: 600px;
+		}
+	</style>
+</head>
+<body onload="loadJSON()" style="margin: 0px; width: 100%; height: 100%">
+	<div style="height: 30px; line-height: 30px;">Start Date: <input type="date" id="startDate" onchange="updateCharts()"/> End Date: <input type="date" id="endDate" onchange="updateCharts()"/></div>
+	<div style="display: flex; width: 100%; height: calc(100% - 55px);">
+		<div style="width: 200px; height: 100%; overflow-y: auto;">
+			<ul id="countriesFilter" class="countriesFilter"></ul>
 		</div>
-		<div style="display: inline-block;">
-			<div>Day by day evolution of the number of infected person</div>
-			<div style="width: 600px; height: 600px;">
-				<canvas id="progression" width="500" height="500"></canvas>
+		<div style="width: calc(100% - 200px); height: 100%; overflow-y: auto;">
+			<div class="chartTile">
+				<div class="chartLabel">
+					<label>Current number of infected persons</label>
+					<div>
+						<input type="checkbox" id="currentLog" onchange="updateCharts()"/>
+						<label for="currentLog">Logarithmic scale</label>
+					</div>
+				</div>
+				<div class="canvasContainer">
+					<canvas id="current" width="600" height="600"></canvas>
+				</div>
 			</div>
-		</div>
-		<div style="display: inline-block;">
-			<div>Day by day evolution of the number of infected person in %</div>
-			<div style="width: 600px; height: 600px;">
-				<canvas id="progressionPercent" width="500" height="500"></canvas>
+			<div class="chartTile">
+				<div class="chartLabel"><label>Day by day evolution of the number of infected person</label></div>
+				<div class="canvasContainer">
+					<canvas id="progression" width="600" height="600"></canvas>
+				</div>
 			</div>
-		</div>
-		<div style="display: inline-block;">
-			<div>Number of infected persons from day 100 <input type="checkbox" id="current100Log" onchange="updateCharts()"/>Log</div>
-			<div style="width: 600px; height: 600px;">
-				<canvas id="current100" width="500" height="500"></canvas>
+			<div class="chartTile">
+				<div class="chartLabel"><label>Day by day evolution of the number of infected person in %</label></div>
+				<div class="canvasContainer">
+					<canvas id="progressionPercent" width="600" height="600"></canvas>
+				</div>
 			</div>
-		</div>
-		<div style="display: inline-block;">
-			<div>Number of deaths from day 100 <input type="checkbox" id="death100Log" onchange="updateCharts()"/>Log</div>
-			<div style="width: 600px; height: 600px;">
-				<canvas id="death100" width="500" height="500"></canvas>
+			<div class="chartTile">
+				<div class="chartLabel">
+					<label>Number of infected persons from day 100</label>
+					<div>
+						<input type="checkbox" id="current100Log" onchange="updateCharts()"/>
+						<label for="current100Log">Logarithmic scale</label>
+					</div>
+				</div>
+				<div class="canvasContainer">
+					<canvas id="current100" width="600" height="600"></canvas>
+				</div>
+			</div>
+			<div class="chartTile">
+				<div class="chartLabel">
+					<label>Number of deaths from day 100</label>
+					<div>
+						<input type="checkbox" id="death100Log" onchange="updateCharts()"/>
+						<label for="death100Log">Logarithmic scale</label>
+					</div>
+				</div>
+				<div class="canvasContainer">
+					<canvas id="death100" width="600" height="600"></canvas>
+				</div>
 			</div>
 		</div>
 	</div>
-	<br /><br />
-	<div id="countriesFilter">
-	</div>
-	<br /><br />
-	<div>Data from: <a href="https://www.data.gouv.fr/fr/datasets/coronavirus-covid19-evolution-par-pays-et-dans-le-monde-maj-quotidienne/">https://www.data.gouv.fr/fr/datasets/coronavirus-covid19-evolution-par-pays-et-dans-le-monde-maj-quotidienne/</a></div>
+	<div style="height: 24px; line-height: 24px; border-top: 1px solid black;">Data from: <a href="https://www.data.gouv.fr/fr/datasets/coronavirus-covid19-evolution-par-pays-et-dans-le-monde-maj-quotidienne/">https://www.data.gouv.fr/fr/datasets/coronavirus-covid19-evolution-par-pays-et-dans-le-monde-maj-quotidienne/</a></div>
 </body>
 </html>
