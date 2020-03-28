@@ -9,14 +9,33 @@
 		let sMaxDate = "2020-01-22";
 		
 		let currentChart;
-		let progressionChart;
-		let progressionPercentChart;
 		let current100Chart;
+		let currentProgressionChart;
+		let currentProgressionPercentChart;
+		
+		let infectionChart;
+		let infection100Chart;
+		let infectionProgressionChart;
+		let infectionProgressionPercentChart;
+		
+		let deathChart;
 		let death100Chart;
+		let deathProgressionChart;
+		let deathProgressionPercentChart;
+		
+		let guerisonsChart;
+		let guerisons100Chart;
+		let guerisonsProgressionChart;
+		let guerisonsProgressionPercentChart;
 		
 		let bCurrentLog = false;
 		let bCurrent100Log = false;
+		let bInfectionLog = false;
+		let bInfection100Log = false;
+		let bDeathLog = false;
 		let bDeath100Log = false;
+		let bGuerisonsLog = false;
+		let bGuerisons100Log = false;
 		
 		let mDates;
 		let aDates;
@@ -70,11 +89,23 @@
 							oLine.Current = oLine.Infection - oLine.Guerisons - oLine.Deces;
 							const oPreviousLine = sPreviousDate ? mDates[sPreviousDate][sCountry] : null;
 							if (oPreviousLine) {
-								oLine.Progression = oLine.Current - oPreviousLine.Current;
-								oLine.ProgressionPercent = oLine.Progression / oPreviousLine.Current * 100;
+								oLine.CurrentProgression = oLine.Current - oPreviousLine.Current;
+								oLine.CurrentProgressionPercent = oLine.CurrentProgression / oPreviousLine.Current * 100;
+								oLine.InfectionProgression = oLine.Infection - oPreviousLine.Infection;
+								oLine.InfectionProgressionPercent = oLine.InfectionProgression / oPreviousLine.Infection * 100;
+								oLine.DecesProgression = oLine.Deces - oPreviousLine.Deces;
+								oLine.DecesProgressionPercent = oLine.DecesProgression / oPreviousLine.Deces * 100;
+								oLine.GuerisonsProgression = oLine.Guerisons - oPreviousLine.Guerisons;
+								oLine.GuerisonsProgressionPercent = oLine.GuerisonsProgression / oPreviousLine.Guerisons * 100;
 							} else {
-								oLine.Progression = oLine.Current;
-								oLine.ProgressionPercent = 0;
+								oLine.CurrentProgression = oLine.Current;
+								oLine.CurrentProgressionPercent = 0;
+								oLine.InfectionProgression = oLine.Infection;
+								oLine.InfectionProgressionPercent = 0;
+								oLine.DecesProgression = oLine.Deces;
+								oLine.DecesProgressionPercent = 0;
+								oLine.GuerisonsProgression = oLine.Guerisons;
+								oLine.GuerisonsProgressionPercent = 0;
 							}
 						}
 					};
@@ -136,10 +167,25 @@
 		
 		function createCharts(oDataSets) {
 			const aCurrentDatasets = [];
-			const aProgressionDatasets = [];
-			const aProgressionPercentDatasets = [];
 			const aCurrent100Datasets = [];
+			const aCurrentProgressionDatasets = [];
+			const aCurrentProgressionPercentDatasets = [];
+			
+			const aInfectionDatasets = [];
+			const aInfection100Datasets = [];
+			const aInfectionProgressionDatasets = [];
+			const aInfectionProgressionPercentDatasets = [];
+			
+			const aDeathDatasets = [];
 			const aDeath100Datasets = [];
+			const aDeathProgressionDatasets = [];
+			const aDeathProgressionPercentDatasets = [];
+			
+			const aGuerisonsDatasets = [];
+			const aGuerisons100Datasets = [];
+			const aGuerisonsProgressionDatasets = [];
+			const aGuerisonsProgressionPercentDatasets = [];
+			
 			for (let i = 0; i < aSelectedCountries.length; i++) {
 				const sCountry = aSelectedCountries[i];
 				aCurrentDatasets.push({
@@ -148,23 +194,55 @@
 					borderColor: aColors[i],
 					data: oDataSets.countries[sCountry].Current
 				});
-				aProgressionDatasets.push({
-					label: sCountry,
-					fill: false,
-					borderColor: aColors[i],
-					data: oDataSets.countries[sCountry].Progression
-				});
-				aProgressionPercentDatasets.push({
-					label: sCountry,
-					fill: false,
-					borderColor: aColors[i],
-					data: oDataSets.countries[sCountry].ProgressionPercent
-				});
 				aCurrent100Datasets.push({
 					label: sCountry,
 					fill: false,
 					borderColor: aColors[i],
 					data: oDataSets.countries100[sCountry].Current
+				});
+				aCurrentProgressionDatasets.push({
+					label: sCountry,
+					fill: false,
+					borderColor: aColors[i],
+					data: oDataSets.countries[sCountry].CurrentProgression
+				});
+				aCurrentProgressionPercentDatasets.push({
+					label: sCountry,
+					fill: false,
+					borderColor: aColors[i],
+					data: oDataSets.countries[sCountry].CurrentProgressionPercent
+				});
+				
+				aInfectionDatasets.push({
+					label: sCountry,
+					fill: false,
+					borderColor: aColors[i],
+					data: oDataSets.countries[sCountry].Infection
+				});
+				aInfection100Datasets.push({
+					label: sCountry,
+					fill: false,
+					borderColor: aColors[i],
+					data: oDataSets.countries100[sCountry].Infection
+				});
+				aInfectionProgressionDatasets.push({
+					label: sCountry,
+					fill: false,
+					borderColor: aColors[i],
+					data: oDataSets.countries[sCountry].InfectionProgression
+				});
+				aInfectionProgressionPercentDatasets.push({
+					label: sCountry,
+					fill: false,
+					borderColor: aColors[i],
+					data: oDataSets.countries[sCountry].InfectionProgressionPercent
+				});
+				
+				aDeathDatasets.push({
+					label: sCountry,
+					fill: false,
+					borderColor: aColors[i],
+					data: oDataSets.countries[sCountry].Death
 				});
 				aDeath100Datasets.push({
 					label: sCountry,
@@ -172,8 +250,46 @@
 					borderColor: aColors[i],
 					data: oDataSets.countries100[sCountry].Death
 				});
+				aDeathProgressionDatasets.push({
+					label: sCountry,
+					fill: false,
+					borderColor: aColors[i],
+					data: oDataSets.countries[sCountry].DeathProgression
+				});
+				aDeathProgressionPercentDatasets.push({
+					label: sCountry,
+					fill: false,
+					borderColor: aColors[i],
+					data: oDataSets.countries[sCountry].DeathProgressionPercent
+				});
+				
+				aGuerisonsDatasets.push({
+					label: sCountry,
+					fill: false,
+					borderColor: aColors[i],
+					data: oDataSets.countries[sCountry].Guerisons
+				});
+				aGuerisons100Datasets.push({
+					label: sCountry,
+					fill: false,
+					borderColor: aColors[i],
+					data: oDataSets.countries100[sCountry].Guerisons
+				});
+				aGuerisonsProgressionDatasets.push({
+					label: sCountry,
+					fill: false,
+					borderColor: aColors[i],
+					data: oDataSets.countries[sCountry].GuerisonsProgression
+				});
+				aGuerisonsProgressionPercentDatasets.push({
+					label: sCountry,
+					fill: false,
+					borderColor: aColors[i],
+					data: oDataSets.countries[sCountry].GuerisonsProgressionPercent
+				});
 			}
 			
+			//Current
 			if (currentChart) {
 				currentChart.destroy();
 			}
@@ -191,60 +307,9 @@
 			}
 			
 			if (bCurrentLog) {
-				oCurrentChartConf.options.scales = {
-					yAxes: [{
-						type: 'logarithmic',
-						ticks: {
-						min: 0,
-						max: 100000,
-						callback: function(value, index, values) {//needed to change the scientific notation results from using logarithmic scale
-							return Number(value.toString());//pass tick values as a string into Number function
-						}
-					},
-					afterBuildTicks: function(pckBarChart) {    
-						pckBarChart.ticks = [];
-						pckBarChart.ticks.push(10);
-						pckBarChart.ticks.push(100);
-						pckBarChart.ticks.push(1000);
-						pckBarChart.ticks.push(10000);
-						pckBarChart.ticks.push(100000);
-					  }
-					}]
-				};
+				oCurrentChartConf.options.scales = getLogScale();
 			}
 			currentChart = new Chart(currentCtx, oCurrentChartConf);
-			
-			if (progressionChart) {
-				progressionChart.destroy();
-			}
-			const progressionCtx = document.getElementById('progression').getContext('2d');			
-			progressionChart = new Chart(progressionCtx, {
-				type: 'line',
-				data: {
-					labels: oDataSets.dates,
-					datasets: aProgressionDatasets
-				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: false
-				}
-			});
-			
-			if (progressionPercentChart) {
-				progressionPercentChart.destroy();
-			}
-			const progressionPercentCtx = document.getElementById('progressionPercent').getContext('2d');				
-			progressionPercentChart = new Chart(progressionPercentCtx, {
-				type: 'line',
-				data: {
-					labels: oDataSets.dates,
-					datasets: aProgressionPercentDatasets
-				},
-				options: {
-					responsive: true,
-					maintainAspectRatio: false
-				}
-			});
 			
 			if (current100Chart) {
 				current100Chart.destroy();
@@ -263,28 +328,124 @@
 			}
 			
 			if (bCurrent100Log) {
-				oCurrent100ChartConf.options.scales = {
-					yAxes: [{
-						type: 'logarithmic',
-						ticks: {
-						min: 0,
-						max: 100000,
-						callback: function(value, index, values) {
-							return Number(value.toString());
-						}
-					},
-					afterBuildTicks: function(pckBarChart) {    
-						pckBarChart.ticks = [];
-						pckBarChart.ticks.push(10);
-						pckBarChart.ticks.push(100);
-						pckBarChart.ticks.push(1000);
-						pckBarChart.ticks.push(10000);
-						pckBarChart.ticks.push(100000);
-					  }
-					}]
-				};
+				oCurrent100ChartConf.options.scales = getLogScale();
 			}
 			current100Chart = new Chart(current100Ctx, oCurrent100ChartConf);
+			
+			/*
+			if (currentProgressionChart) {
+				currentProgressionChart.destroy();
+			}
+			const currentProgressionCtx = document.getElementById('currentProgression').getContext('2d');			
+			currentProgressionChart = new Chart(currentProgressionCtx, {
+				type: 'line',
+				data: {
+					labels: oDataSets.dates,
+					datasets: aCurrentProgressionDatasets
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false
+				}
+			});
+			
+			if (currentProgressionPercentChart) {
+				currentProgressionPercentChart.destroy();
+			}
+			const currentProgressionPercentCtx = document.getElementById('currentProgressionPercent').getContext('2d');				
+			currentProgressionPercentChart = new Chart(currentProgressionPercentCtx, {
+				type: 'line',
+				data: {
+					labels: oDataSets.dates,
+					datasets: aCurrentProgressionPercentDatasets
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false
+				}
+			});
+			*/
+			
+			//Infection
+			if (infectionChart) {
+				infectionChart.destroy();
+			}
+			const infectionCtx = document.getElementById('infection').getContext('2d');
+			const oInfectionChartConf = {
+				type: 'line',
+				data: {
+					labels: oDataSets.dates,
+					datasets: aInfectionDatasets
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: true
+				}
+			}
+			
+			if (bInfectionLog) {
+				oInfectionChartConf.options.scales = getLogScale();
+			}
+			infectionChart = new Chart(infectionCtx, oInfectionChartConf);
+			
+			if (infection100Chart) {
+				infection100Chart.destroy();
+			}
+			const infection100Ctx = document.getElementById('infection100').getContext('2d');
+			const oInfection100ChartConf = {
+				type: 'line',
+				data: {
+					labels: oDataSets.dates100,
+					datasets: aInfection100Datasets
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: true
+				}
+			}
+			
+			if (bInfection100Log) {
+				oInfection100ChartConf.options.scales = getLogScale();
+			}
+			infection100Chart = new Chart(infection100Ctx, oInfection100ChartConf);
+			
+			if (infectionProgressionChart) {
+				infectionProgressionChart.destroy();
+			}
+			const infectionProgressionCtx = document.getElementById('infectionProgression').getContext('2d');			
+			infectionProgressionChart = new Chart(infectionProgressionCtx, {
+				type: 'line',
+				data: {
+					labels: oDataSets.dates,
+					datasets: aInfectionProgressionDatasets
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false
+				}
+			});
+			
+			//Death
+			if (deathChart) {
+				deathChart.destroy();
+			}
+			const deathCtx = document.getElementById('death').getContext('2d');
+			const oDeathChartConf = {
+				type: 'line',
+				data: {
+					labels: oDataSets.dates,
+					datasets: aDeathDatasets
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: true
+				}
+			}
+			
+			if (bDeathLog) {
+				oDeathChartConf.options.scales = getLogScale();
+			}
+			deathChart = new Chart(deathCtx, oDeathChartConf);
 			
 			if (death100Chart) {
 				death100Chart.destroy();
@@ -303,28 +464,91 @@
 			}
 			
 			if (bDeath100Log) {
-				oDeath100ChartConf.options.scales = {
-					yAxes: [{
-						type: 'logarithmic',
-						ticks: {
-						min: 0,
-						max: 100000,
-						callback: function(value, index, values) {
-							return Number(value.toString());
-						}
-					},
-					afterBuildTicks: function(pckBarChart) {    
-						pckBarChart.ticks = [];
-						pckBarChart.ticks.push(10);
-						pckBarChart.ticks.push(100);
-						pckBarChart.ticks.push(1000);
-						pckBarChart.ticks.push(10000);
-						pckBarChart.ticks.push(100000);
-					  }
-					}]
-				};
+				oDeath100ChartConf.options.scales = getLogScale();
 			}
 			death100Chart = new Chart(death100Ctx, oDeath100ChartConf);
+			
+			if (deathProgressionChart) {
+				deathProgressionChart.destroy();
+			}
+			const deathProgressionCtx = document.getElementById('deathProgression').getContext('2d');			
+			deathProgressionChart = new Chart(deathProgressionCtx, {
+				type: 'line',
+				data: {
+					labels: oDataSets.dates,
+					datasets: aDeathProgressionDatasets
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false,
+					scales: {
+						yAxes: [{
+							ticks: {
+								min: 0,
+							}
+						}]
+					}
+				}
+			});
+			
+			//Guerisons
+			if (guerisonsChart) {
+				guerisonsChart.destroy();
+			}
+			const guerisonsCtx = document.getElementById('guerisons').getContext('2d');
+			const oGuerisonsChartConf = {
+				type: 'line',
+				data: {
+					labels: oDataSets.dates,
+					datasets: aGuerisonsDatasets
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: true
+				}
+			}
+			
+			if (bGuerisonsLog) {
+				oGuerisonsChartConf.options.scales = getLogScale();
+			}
+			guerisonsChart = new Chart(guerisonsCtx, oGuerisonsChartConf);
+			
+			if (guerisons100Chart) {
+				guerisons100Chart.destroy();
+			}
+			const guerisons100Ctx = document.getElementById('guerisons100').getContext('2d');
+			const oGuerisons100ChartConf = {
+				type: 'line',
+				data: {
+					labels: oDataSets.dates100,
+					datasets: aGuerisons100Datasets
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: true
+				}
+			}
+			
+			if (bGuerisons100Log) {
+				oGuerisons100ChartConf.options.scales = getLogScale();
+			}
+			guerisons100Chart = new Chart(guerisons100Ctx, oGuerisons100ChartConf);
+			
+			if (guerisonsProgressionChart) {
+				guerisonsProgressionChart.destroy();
+			}
+			const guerisonsProgressionCtx = document.getElementById('guerisonsProgression').getContext('2d');			
+			guerisonsProgressionChart = new Chart(guerisonsProgressionCtx, {
+				type: 'line',
+				data: {
+					labels: oDataSets.dates,
+					datasets: aGuerisonsProgressionDatasets
+				},
+				options: {
+					responsive: true,
+					maintainAspectRatio: false
+				}
+			});
 		}
 		
 		function getDataSets(oData) {
@@ -333,8 +557,17 @@
 			for (let i = 0; i < aSelectedCountries.length; i++) {
 				mCountries[aSelectedCountries[i]] = {
 					Current: [],
-					Progression: [],
-					ProgressionPercent: []
+					CurrentProgression: [],
+					CurrentProgressionPercent: [],
+					Infection: [],
+					InfectionProgression: [],
+					InfectionProgressionPercent: [],
+					Death: [],
+					DeathProgression: [],
+					DeathProgressionPercent: [],
+					Guerisons: [],
+					GuerisonsProgression: [],
+					GuerisonsProgressionPercent: []
 				};
 			};
 			
@@ -346,8 +579,20 @@
 					for (let j = 0; j < aSelectedCountries.length; j++) {
 						const sSelectedCountry = aSelectedCountries[j];
 						mCountries[sSelectedCountry].Current.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Current : 0);
-						mCountries[sSelectedCountry].Progression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Progression : 0);
-						mCountries[sSelectedCountry].ProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].ProgressionPercent : 0);
+						mCountries[sSelectedCountry].CurrentProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].CurrentProgression : 0);
+						mCountries[sSelectedCountry].CurrentProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].CurrentProgressionPercent : 0);
+												
+						mCountries[sSelectedCountry].Infection.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Infection : 0);
+						mCountries[sSelectedCountry].InfectionProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].InfectionProgression : 0);
+						mCountries[sSelectedCountry].InfectionProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].InfectionProgressionPercent : 0);
+						
+						mCountries[sSelectedCountry].Death.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Deces : 0);
+						mCountries[sSelectedCountry].DeathProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].DecesProgression : 0);
+						mCountries[sSelectedCountry].DeathProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].DecesProgressionPercent : 0);
+						
+						mCountries[sSelectedCountry].Guerisons.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Guerisons : 0);
+						mCountries[sSelectedCountry].GuerisonsProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].GuerisonsProgression : 0);
+						mCountries[sSelectedCountry].GuerisonsProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].GuerisonsProgressionPercent : 0);
 					}
 				}
 			}
@@ -363,16 +608,18 @@
 						if (!mCountries100[sSelectedCountry]) {
 							mCountries100[sSelectedCountry] = {
 								Current: [],
-								Death: []
+								Infection: [],
+								Death: [],
+								Guerisons: []
 							};
 						} 
 						mCountries100[sSelectedCountry].Current.push(oLine.Current);
+						mCountries100[sSelectedCountry].Infection.push(oLine.Infection);
 						mCountries100[sSelectedCountry].Death.push(oLine.Deces);
+						mCountries100[sSelectedCountry].Guerisons.push(oLine.Guerisons);
 					}
 				};
 			}
-			
-			
 			
 			let iDateNb = 0;
 			for (let i = 0; i < aSelectedCountries.length; i++) {
@@ -394,11 +641,37 @@
 			};
 		};
 		
+		function getLogScale() {
+			return {
+				yAxes: [{
+					type: 'logarithmic',
+					ticks: {
+					min: 0,
+					max: 100000,
+					callback: function(value, index, values) {
+						return Number(value.toString());
+					}
+				},
+				afterBuildTicks: function(pckBarChart) {    
+					pckBarChart.ticks = [];
+					pckBarChart.ticks.push(10);
+					pckBarChart.ticks.push(100);
+					pckBarChart.ticks.push(1000);
+					pckBarChart.ticks.push(10000);
+					pckBarChart.ticks.push(100000);
+				  }
+				}]
+			};
+		}
+		
 		function updateCharts() {
 			sMinDate = document.getElementById('startDate').value;
 			sMaxDate = document.getElementById('endDate').value;
 			bCurrentLog = document.getElementById('currentLog').checked;
 			bCurrent100Log = document.getElementById('current100Log').checked;
+			bInfectionLog = document.getElementById('infectionLog').checked;
+			bInfection100Log = document.getElementById('infection100Log').checked;
+			bDeathLog = document.getElementById('deathLog').checked;
 			bDeath100Log = document.getElementById('death100Log').checked;
 			const oDataSets = getDataSets(oLoadedData);
 			createCharts(oDataSets);
@@ -450,7 +723,7 @@
 		<div style="width: calc(100% - 200px); height: 100%; overflow-y: auto;">
 			<div class="chartTile">
 				<div class="chartLabel">
-					<label>Current number of infected persons</label>
+					<label>Total number of tested persons still infected</label>
 					<div>
 						<input type="checkbox" id="currentLog" onchange="updateCharts()"/>
 						<label for="currentLog">Logarithmic scale</label>
@@ -461,20 +734,8 @@
 				</div>
 			</div>
 			<div class="chartTile">
-				<div class="chartLabel"><label>Day by day evolution of the number of infected person</label></div>
-				<div class="canvasContainer">
-					<canvas id="progression" width="600" height="600"></canvas>
-				</div>
-			</div>
-			<div class="chartTile">
-				<div class="chartLabel"><label>Day by day evolution of the number of infected person in %</label></div>
-				<div class="canvasContainer">
-					<canvas id="progressionPercent" width="600" height="600"></canvas>
-				</div>
-			</div>
-			<div class="chartTile">
 				<div class="chartLabel">
-					<label>Number of infected persons from day 100</label>
+					<label>Total number of tested persons still infected from day 100</label>
 					<div>
 						<input type="checkbox" id="current100Log" onchange="updateCharts()"/>
 						<label for="current100Log">Logarithmic scale</label>
@@ -486,7 +747,49 @@
 			</div>
 			<div class="chartTile">
 				<div class="chartLabel">
-					<label>Number of deaths from day 100</label>
+					<label>Total number of tested persons that have been infected</label>
+					<div>
+						<input type="checkbox" id="infectionLog" onchange="updateCharts()"/>
+						<label for="infectionLog">Logarithmic scale</label>
+					</div>
+				</div>
+				<div class="canvasContainer">
+					<canvas id="infection" width="600" height="600"></canvas>
+				</div>
+			</div>
+			<div class="chartTile">
+				<div class="chartLabel">
+					<label>Total number of tested persons that have been infected from day 100</label>
+					<div>
+						<input type="checkbox" id="infection100Log" onchange="updateCharts()"/>
+						<label for="infection100Log">Logarithmic scale</label>
+					</div>
+				</div>
+				<div class="canvasContainer">
+					<canvas id="infection100" width="600" height="600"></canvas>
+				</div>
+			</div>
+			<div class="chartTile">
+				<div class="chartLabel"><label>New number of persons detected</label></div>
+				<div class="canvasContainer">
+					<canvas id="infectionProgression" width="600" height="600"></canvas>
+				</div>
+			</div>
+			<div class="chartTile">
+				<div class="chartLabel">
+					<label>Total number of detected deaths</label>
+					<div>
+						<input type="checkbox" id="deathLog" onchange="updateCharts()"/>
+						<label for="deathLog">Logarithmic scale</label>
+					</div>
+				</div>
+				<div class="canvasContainer">
+					<canvas id="death" width="600" height="600"></canvas>
+				</div>
+			</div>
+			<div class="chartTile">
+				<div class="chartLabel">
+					<label>Total number of detected deaths from day 100</label>
 					<div>
 						<input type="checkbox" id="death100Log" onchange="updateCharts()"/>
 						<label for="death100Log">Logarithmic scale</label>
@@ -496,6 +799,56 @@
 					<canvas id="death100" width="600" height="600"></canvas>
 				</div>
 			</div>
+			<div class="chartTile">
+				<div class="chartLabel"><label>New detected deaths</label></div>
+				<div class="canvasContainer">
+					<canvas id="deathProgression" width="600" height="600"></canvas>
+				</div>
+			</div>
+			<div class="chartTile">
+				<div class="chartLabel">
+					<label>Number of tested persons that have been cured</label>
+					<div>
+						<input type="checkbox" id="guerisonsLog" onchange="updateCharts()"/>
+						<label for="guerisonsLog">Logarithmic scale</label>
+					</div>
+				</div>
+				<div class="canvasContainer">
+					<canvas id="guerisons" width="600" height="600"></canvas>
+				</div>
+			</div>
+			<div class="chartTile">
+				<div class="chartLabel">
+					<label>Number of tested persons that have been cured from day 100</label>
+					<div>
+						<input type="checkbox" id="guerisons100Log" onchange="updateCharts()"/>
+						<label for="guerisons100Log">Logarithmic scale</label>
+					</div>
+				</div>
+				<div class="canvasContainer">
+					<canvas id="guerisons100" width="600" height="600"></canvas>
+				</div>
+			</div>
+			<div class="chartTile">
+				<div class="chartLabel"><label>New tested persons that have been cured persons</label></div>
+				<div class="canvasContainer">
+					<canvas id="guerisonsProgression" width="600" height="600"></canvas>
+				</div>
+			</div>
+			<!--
+			<div class="chartTile">
+				<div class="chartLabel"><label>Day by day evolution of the number of infected person</label></div>
+				<div class="canvasContainer">
+					<canvas id="currentProgression" width="600" height="600"></canvas>
+				</div>
+			</div>
+			<div class="chartTile">
+				<div class="chartLabel"><label>Day by day evolution of the number of infected person in %</label></div>
+				<div class="canvasContainer">
+					<canvas id="currentProgressionPercent" width="600" height="600"></canvas>
+				</div>
+			</div>
+			-->
 		</div>
 	</div>
 	<div style="height: 24px; line-height: 24px; border-top: 1px solid black;">Data from: <a href="https://www.data.gouv.fr/fr/datasets/coronavirus-covid19-evolution-par-pays-et-dans-le-monde-maj-quotidienne/">https://www.data.gouv.fr/fr/datasets/coronavirus-covid19-evolution-par-pays-et-dans-le-monde-maj-quotidienne/</a></div>
