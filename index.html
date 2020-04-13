@@ -3,7 +3,8 @@
 <head>
 	<script src="Chart.bundle.min.js"></script>
 	<script type="text/javascript">
-		let oLoadedData;
+		let oCovidData;
+		let oPopulationData;
 		
 		let sMinDate = "2020-01-22";
 		let sMaxDate = "2020-01-22";
@@ -37,6 +38,8 @@
 		let bGuerisonsLog = false;
 		let bGuerisons100Log = false;
 		
+		let bPerMillion = false;
+		
 		let mDates;
 		let aDates;
 		let mCountries;
@@ -45,124 +48,123 @@
 		let aSelectedCountries;
 		const aColors = ['#5899DA', '#E8743B', '#19A979', '#ED4A7B', '#945ECF', '#13A4B4', '#525DF4', '#BF399E', '#6C8893', '#EE6868', '#2F6497'];
 	
-		function loadJSON() {
-			fetch("https://raw.githubusercontent.com/khyos/covid19/master/covid19-data.json").then((response) => {
-				return response.json();
-			})
-			.then((oData) => {
-				oLoadedData = oData;
-				const oCountriesData = oData.PaysData;
-				
-				mDates = {};
-				mCountries = {};
-				oCountriesData.forEach((line) => {
-					line.FinalDate = line.Date.split('T')[0];
-					if (line.FinalDate.localeCompare(sMinDate) < 0) {
-						sMinDate = line.FinalDate;
-					}
-					if (line.FinalDate.localeCompare(sMaxDate) > 0) {
-						sMaxDate = line.FinalDate;
-					}
-					if (!mDates[line.FinalDate]) {
-						mDates[line.FinalDate] = {};
-					}
-					mDates[line.FinalDate][line.Pays] = line;
-					if (!mCountries[line.Pays]) {
-						mCountries[line.Pays] = {};
-					}
-					mCountries[line.Pays][line.FinalDate] = line;
-				});
-				
-				aDates = Object.keys(mDates);
-				aDates.sort((oDateA, oDateB) => {
-					return oDateA.localeCompare(oDateB);
-				});
-				aCountries = Object.keys(mCountries);
-				
-				for (let i = 0; i < aDates.length; i++) {
-					const sPreviousDate = aDates[i - 1];
-					const sDate = aDates[i];
-					for (let j = 0; j < aCountries.length; j++) {
-						const sCountry = aCountries[j];
-						const oLine = mDates[sDate][sCountry];
-						if (oLine) {
-							oLine.Current = oLine.Infection - oLine.Guerisons - oLine.Deces;
-							const oPreviousLine = sPreviousDate ? mDates[sPreviousDate][sCountry] : null;
-							if (oPreviousLine) {
-								oLine.CurrentProgression = oLine.Current - oPreviousLine.Current;
-								oLine.CurrentProgressionPercent = oLine.CurrentProgression / oPreviousLine.Current * 100;
-								oLine.InfectionProgression = oLine.Infection - oPreviousLine.Infection;
-								oLine.InfectionProgressionPercent = oLine.InfectionProgression / oPreviousLine.Infection * 100;
-								oLine.DecesProgression = oLine.Deces - oPreviousLine.Deces;
-								oLine.DecesProgressionPercent = oLine.DecesProgression / oPreviousLine.Deces * 100;
-								oLine.GuerisonsProgression = oLine.Guerisons - oPreviousLine.Guerisons;
-								oLine.GuerisonsProgressionPercent = oLine.GuerisonsProgression / oPreviousLine.Guerisons * 100;
-							} else {
-								oLine.CurrentProgression = oLine.Current;
-								oLine.CurrentProgressionPercent = 0;
-								oLine.InfectionProgression = oLine.Infection;
-								oLine.InfectionProgressionPercent = 0;
-								oLine.DecesProgression = oLine.Deces;
-								oLine.DecesProgressionPercent = 0;
-								oLine.GuerisonsProgression = oLine.Guerisons;
-								oLine.GuerisonsProgressionPercent = 0;
-							}
-						}
-					};
+		async function loadJSON() {
+			let oCovidResponse = await fetch("https://raw.githubusercontent.com/khyos/covid19/master/covid19-data.json");
+			oCovidData = await oCovidResponse.json();
+			let oPopulationResponse = await fetch("https://raw.githubusercontent.com/khyos/covid19/master/country.json");
+			oPopulationData = await oPopulationResponse.json();
+
+			const oCountriesData = oCovidData.PaysData;
+			
+			mDates = {};
+			mCountries = {};
+			oCountriesData.forEach((line) => {
+				line.FinalDate = line.Date.split('T')[0];
+				if (line.FinalDate.localeCompare(sMinDate) < 0) {
+					sMinDate = line.FinalDate;
 				}
-				
-				aCountries.sort((sCountryA, sCountryB) => {
-					if (!mCountries[sCountryA][sMaxDate]) {
-						return 1;
-					}
-					if (!mCountries[sCountryB][sMaxDate]) {
-						return -1;
-					}
-					return mCountries[sCountryB][sMaxDate].Current - mCountries[sCountryA][sMaxDate].Current;
-				});
-				aSelectedCountries = [];
-				for (let i = 0; i < 8; i++) {
-					aSelectedCountries.push(aCountries[i]);
+				if (line.FinalDate.localeCompare(sMaxDate) > 0) {
+					sMaxDate = line.FinalDate;
 				}
-				
-				const iMaxCurrent = mCountries[aCountries[0]][sMaxDate].Current;
-				const oCountriesFilter = document.getElementById("countriesFilter");
-				aCountries.forEach((sCountry) => {
-					const oLi = document.createElement("li");
-					let iFillPercent = mCountries[sCountry][sMaxDate] ? (mCountries[sCountry][sMaxDate].Current / iMaxCurrent) * 100 : 0;
-					oLi.style.backgroundImage = "linear-gradient(to right, #cadded " + iFillPercent + "%, white " + iFillPercent + "%)";
-					const oCheckBox = document.createElement("INPUT");
-					oCheckBox.setAttribute('type', 'checkbox');
-					oCheckBox.setAttribute('id', sCountry);
-					oCheckBox.checked = aSelectedCountries.indexOf(sCountry) >= 0;
-					oLi.append(oCheckBox);
-					oCheckBox.addEventListener('change', function() {
-						if (this.checked && aSelectedCountries.indexOf(sCountry) === -1) {
-							aSelectedCountries.push(sCountry);
-						} else if (!this.checked && aSelectedCountries.indexOf(sCountry) >= 0) {
-							aSelectedCountries.splice(aSelectedCountries.indexOf(sCountry), 1);
-						}
-						updateCharts();
-					});
-					const oLabel = document.createElement("LABEL");
-					oLabel.innerHTML = sCountry;
-					oLabel.htmlFor = sCountry;
-					oLi.append(oLabel);
-					oCountriesFilter.append(oLi);
-				});
-				
-				const oStartDateInput = document.getElementById('startDate');
-				oStartDateInput.value = sMinDate;
-				oStartDateInput.setAttribute('min', sMinDate);
-				oStartDateInput.setAttribute('max', sMaxDate);
-				const oEndDateInput = document.getElementById('endDate');
-				oEndDateInput.value = sMaxDate;
-				oEndDateInput.setAttribute('min', sMinDate);
-				oEndDateInput.setAttribute('max', sMaxDate);
-				
-				const oDataSets = getDataSets(oLoadedData);
-				createCharts(oDataSets);
+				if (!mDates[line.FinalDate]) {
+					mDates[line.FinalDate] = {};
+				}
+				mDates[line.FinalDate][line.Pays] = line;
+				if (!mCountries[line.Pays]) {
+					mCountries[line.Pays] = {};
+				}
+				mCountries[line.Pays][line.FinalDate] = line;
 			});
+			
+			aDates = Object.keys(mDates);
+			aDates.sort((oDateA, oDateB) => {
+				return oDateA.localeCompare(oDateB);
+			});
+			aCountries = Object.keys(mCountries);
+			
+			for (let i = 0; i < aDates.length; i++) {
+				const sPreviousDate = aDates[i - 1];
+				const sDate = aDates[i];
+				for (let j = 0; j < aCountries.length; j++) {
+					const sCountry = aCountries[j];
+					const oLine = mDates[sDate][sCountry];
+					if (oLine) {
+						oLine.Current = oLine.Infection - oLine.Guerisons - oLine.Deces;
+						const oPreviousLine = sPreviousDate ? mDates[sPreviousDate][sCountry] : null;
+						if (oPreviousLine) {
+							oLine.CurrentProgression = oLine.Current - oPreviousLine.Current;
+							oLine.CurrentProgressionPercent = oLine.CurrentProgression / oPreviousLine.Current * 100;
+							oLine.InfectionProgression = oLine.Infection - oPreviousLine.Infection;
+							oLine.InfectionProgressionPercent = oLine.InfectionProgression / oPreviousLine.Infection * 100;
+							oLine.DecesProgression = oLine.Deces - oPreviousLine.Deces;
+							oLine.DecesProgressionPercent = oLine.DecesProgression / oPreviousLine.Deces * 100;
+							oLine.GuerisonsProgression = oLine.Guerisons - oPreviousLine.Guerisons;
+							oLine.GuerisonsProgressionPercent = oLine.GuerisonsProgression / oPreviousLine.Guerisons * 100;
+						} else {
+							oLine.CurrentProgression = oLine.Current;
+							oLine.CurrentProgressionPercent = 0;
+							oLine.InfectionProgression = oLine.Infection;
+							oLine.InfectionProgressionPercent = 0;
+							oLine.DecesProgression = oLine.Deces;
+							oLine.DecesProgressionPercent = 0;
+							oLine.GuerisonsProgression = oLine.Guerisons;
+							oLine.GuerisonsProgressionPercent = 0;
+						}
+					}
+				};
+			}
+			
+			aCountries.sort((sCountryA, sCountryB) => {
+				if (!mCountries[sCountryA][sMaxDate]) {
+					return 1;
+				}
+				if (!mCountries[sCountryB][sMaxDate]) {
+					return -1;
+				}
+				return mCountries[sCountryB][sMaxDate].Current - mCountries[sCountryA][sMaxDate].Current;
+			});
+			aSelectedCountries = [];
+			for (let i = 0; i < 8; i++) {
+				aSelectedCountries.push(aCountries[i]);
+			}
+			
+			const iMaxCurrent = mCountries[aCountries[0]][sMaxDate].Current;
+			const oCountriesFilter = document.getElementById("countriesFilter");
+			aCountries.forEach((sCountry) => {
+				const oLi = document.createElement("li");
+				let iFillPercent = mCountries[sCountry][sMaxDate] ? (mCountries[sCountry][sMaxDate].Current / iMaxCurrent) * 100 : 0;
+				oLi.style.backgroundImage = "linear-gradient(to right, #cadded " + iFillPercent + "%, white " + iFillPercent + "%)";
+				const oCheckBox = document.createElement("INPUT");
+				oCheckBox.setAttribute('type', 'checkbox');
+				oCheckBox.setAttribute('id', sCountry);
+				oCheckBox.checked = aSelectedCountries.indexOf(sCountry) >= 0;
+				oLi.append(oCheckBox);
+				oCheckBox.addEventListener('change', function() {
+					if (this.checked && aSelectedCountries.indexOf(sCountry) === -1) {
+						aSelectedCountries.push(sCountry);
+					} else if (!this.checked && aSelectedCountries.indexOf(sCountry) >= 0) {
+						aSelectedCountries.splice(aSelectedCountries.indexOf(sCountry), 1);
+					}
+					updateCharts();
+				});
+				const oLabel = document.createElement("LABEL");
+				oLabel.innerHTML = sCountry;
+				oLabel.htmlFor = sCountry;
+				oLi.append(oLabel);
+				oCountriesFilter.append(oLi);
+			});
+			
+			const oStartDateInput = document.getElementById('startDate');
+			oStartDateInput.value = sMinDate;
+			oStartDateInput.setAttribute('min', sMinDate);
+			oStartDateInput.setAttribute('max', sMaxDate);
+			const oEndDateInput = document.getElementById('endDate');
+			oEndDateInput.value = sMaxDate;
+			oEndDateInput.setAttribute('min', sMinDate);
+			oEndDateInput.setAttribute('max', sMaxDate);
+			
+			const oDataSets = getDataSets(oCovidData);
+			createCharts(oDataSets);
 		}
 		
 		function createCharts(oDataSets) {
@@ -578,21 +580,39 @@
 					aFinalDates.push(sDate);
 					for (let j = 0; j < aSelectedCountries.length; j++) {
 						const sSelectedCountry = aSelectedCountries[j];
-						mCountries[sSelectedCountry].Current.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Current : 0);
-						mCountries[sSelectedCountry].CurrentProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].CurrentProgression : 0);
-						mCountries[sSelectedCountry].CurrentProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].CurrentProgressionPercent : 0);
-												
-						mCountries[sSelectedCountry].Infection.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Infection : 0);
-						mCountries[sSelectedCountry].InfectionProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].InfectionProgression : 0);
-						mCountries[sSelectedCountry].InfectionProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].InfectionProgressionPercent : 0);
-						
-						mCountries[sSelectedCountry].Death.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Deces : 0);
-						mCountries[sSelectedCountry].DeathProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].DecesProgression : 0);
-						mCountries[sSelectedCountry].DeathProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].DecesProgressionPercent : 0);
-						
-						mCountries[sSelectedCountry].Guerisons.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Guerisons : 0);
-						mCountries[sSelectedCountry].GuerisonsProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].GuerisonsProgression : 0);
-						mCountries[sSelectedCountry].GuerisonsProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].GuerisonsProgressionPercent : 0);
+						if (bPerMillion) {
+							mCountries[sSelectedCountry].Current.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Current * (1000000 / oPopulationData[sSelectedCountry]) : 0);
+							mCountries[sSelectedCountry].CurrentProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].CurrentProgression * (1000000 / oPopulationData[sSelectedCountry]) : 0);
+							mCountries[sSelectedCountry].CurrentProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].CurrentProgressionPercent * (1000000 / oPopulationData[sSelectedCountry]) : 0);
+													
+							mCountries[sSelectedCountry].Infection.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Infection * (1000000 / oPopulationData[sSelectedCountry]) : 0);
+							mCountries[sSelectedCountry].InfectionProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].InfectionProgression * (1000000 / oPopulationData[sSelectedCountry]) : 0);
+							mCountries[sSelectedCountry].InfectionProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].InfectionProgressionPercent * (1000000 / oPopulationData[sSelectedCountry]) : 0);
+							
+							mCountries[sSelectedCountry].Death.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Deces * (1000000 / oPopulationData[sSelectedCountry]) : 0);
+							mCountries[sSelectedCountry].DeathProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].DecesProgression * (1000000 / oPopulationData[sSelectedCountry]) : 0);
+							mCountries[sSelectedCountry].DeathProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].DecesProgressionPercent * (1000000 / oPopulationData[sSelectedCountry]) : 0);
+							
+							mCountries[sSelectedCountry].Guerisons.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Guerisons * (1000000 / oPopulationData[sSelectedCountry]) : 0);
+							mCountries[sSelectedCountry].GuerisonsProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].GuerisonsProgression * (1000000 / oPopulationData[sSelectedCountry]) : 0);
+							mCountries[sSelectedCountry].GuerisonsProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].GuerisonsProgressionPercent * (1000000 / oPopulationData[sSelectedCountry]) : 0);
+						} else {
+							mCountries[sSelectedCountry].Current.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Current : 0);
+							mCountries[sSelectedCountry].CurrentProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].CurrentProgression : 0);
+							mCountries[sSelectedCountry].CurrentProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].CurrentProgressionPercent : 0);
+													
+							mCountries[sSelectedCountry].Infection.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Infection : 0);
+							mCountries[sSelectedCountry].InfectionProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].InfectionProgression : 0);
+							mCountries[sSelectedCountry].InfectionProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].InfectionProgressionPercent : 0);
+							
+							mCountries[sSelectedCountry].Death.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Deces : 0);
+							mCountries[sSelectedCountry].DeathProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].DecesProgression : 0);
+							mCountries[sSelectedCountry].DeathProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].DecesProgressionPercent : 0);
+							
+							mCountries[sSelectedCountry].Guerisons.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].Guerisons : 0);
+							mCountries[sSelectedCountry].GuerisonsProgression.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].GuerisonsProgression : 0);
+							mCountries[sSelectedCountry].GuerisonsProgressionPercent.push(mDates[sDate][sSelectedCountry] ? mDates[sDate][sSelectedCountry].GuerisonsProgressionPercent : 0);
+						}
 					}
 				}
 			}
@@ -613,10 +633,17 @@
 								Guerisons: []
 							};
 						} 
-						mCountries100[sSelectedCountry].Current.push(oLine.Current);
-						mCountries100[sSelectedCountry].Infection.push(oLine.Infection);
-						mCountries100[sSelectedCountry].Death.push(oLine.Deces);
-						mCountries100[sSelectedCountry].Guerisons.push(oLine.Guerisons);
+						if (bPerMillion) {
+							mCountries100[sSelectedCountry].Current.push(oLine.Current * (1000000 / oPopulationData[sSelectedCountry]));
+							mCountries100[sSelectedCountry].Infection.push(oLine.Infection * (1000000 / oPopulationData[sSelectedCountry]));
+							mCountries100[sSelectedCountry].Death.push(oLine.Deces * (1000000 / oPopulationData[sSelectedCountry]));
+							mCountries100[sSelectedCountry].Guerisons.push(oLine.Guerisons * (1000000 / oPopulationData[sSelectedCountry]));
+						} else {
+							mCountries100[sSelectedCountry].Current.push(oLine.Current);
+							mCountries100[sSelectedCountry].Infection.push(oLine.Infection);
+							mCountries100[sSelectedCountry].Death.push(oLine.Deces);
+							mCountries100[sSelectedCountry].Guerisons.push(oLine.Guerisons);
+						}
 					}
 				};
 			}
@@ -673,7 +700,8 @@
 			bInfection100Log = document.getElementById('infection100Log').checked;
 			bDeathLog = document.getElementById('deathLog').checked;
 			bDeath100Log = document.getElementById('death100Log').checked;
-			const oDataSets = getDataSets(oLoadedData);
+			bPerMillion = document.getElementById('perMillion').checked;
+			const oDataSets = getDataSets(oCovidData);
 			createCharts(oDataSets);
 		};
 	</script>
@@ -715,7 +743,11 @@
 	</style>
 </head>
 <body onload="loadJSON()" style="margin: 0px; width: 100%; height: 100%">
-	<div style="height: 30px; line-height: 30px;">Start Date: <input type="date" id="startDate" onchange="updateCharts()"/> End Date: <input type="date" id="endDate" onchange="updateCharts()"/></div>
+	<div style="height: 30px; line-height: 30px;">
+		Start Date: <input type="date" id="startDate" onchange="updateCharts()"/>
+		End Date: <input type="date" id="endDate" onchange="updateCharts()"/>
+		<input type="checkbox" id="perMillion" onchange="updateCharts()"/><label for="perMillion">Per Million</label>
+	</div>
 	<div style="display: flex; width: 100%; height: calc(100% - 55px);">
 		<div style="width: 200px; height: 100%; overflow-y: auto;">
 			<ul id="countriesFilter" class="countriesFilter"></ul>
